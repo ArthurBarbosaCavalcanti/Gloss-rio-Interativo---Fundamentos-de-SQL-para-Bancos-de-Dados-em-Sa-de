@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Fundamentos de SQL para Bancos de Dados em Saúde</title>
+    <style>
+        :root {
+            /* Paleta institucional: Azul Petróleo & Verde Água */
+            --sus-blue: #0f4c5c;        /* Azul petróleo (primária) */
+            --sus-blue-light: #e3eef0;  /* Tinta clara para blocos de contexto */
+            --viridis-dark: #093139;    /* Azul petróleo escuro (títulos) */
+            --viridis-teal: #0a9396;    /* Verde água (secundária) */
+            --viridis-green: #35a9ac;   /* Verde água claro (variação) */
+            --viridis-yellow: #94d2bd;  /* Realce claro (detalhes) */
+
+            /* Backgrounds e Textos */
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #555555;
+
+            /* Código (IDE Theme) */
+            --code-bg: #1e1e1e;
+            --code-text: #d4d4d4;
+            --code-keyword: #569cd6;
+            --code-string: #ce9178;
+            --code-comment: #6a9955;
+            --code-function: #dcdcaa;
+
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        html { scroll-behavior: smooth; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-main);
+            background-color: var(--bg-color);
+            padding: 0 15px;
+        }
+
+        .icon {
+            width: 16px; height: 16px;
+            vertical-align: -3px;
+            flex-shrink: 0;
+        }
+        .hero-icon-badge .icon,
+        .search-icon .icon { width: 18px; height: 18px; }
+        .filter-btn .icon { width: 17px; height: 17px; }
+
+        header.hero {
+            background-color: var(--sus-blue);
+            background-image:
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 26px 26px;
+            color: white;
+            padding: calc(2rem + env(safe-area-inset-top, 0px)) 1.75rem 3.5rem 1.75rem;
+            border-radius: 0 0 16px 16px;
+            margin-bottom: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 1100px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .hero-topbar { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
+        .hero-icon-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px;
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 8px;
+            font-size: 1.1rem;
+            background: rgba(255,255,255,0.08);
+            flex-shrink: 0;
+        }
+        .hero-org { font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .9; }
+        .hero-divider { border: none; border-top: 1px solid rgba(255,255,255,0.18); margin-bottom: 1.5rem; }
+        .hero-eyebrow {
+            display: flex; align-items: center; gap: .5rem;
+            font-size: .8rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+            color: var(--viridis-green); margin-bottom: .75rem;
+        }
+        .hero-title {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 2.3rem;
+            line-height: 1.25;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            max-width: 800px;
+        }
+        .hero-subtitle { font-size: 1.05rem; max-width: 640px; opacity: .88; line-height: 1.6; }
+
+        .toolbar {
+            max-width: 900px;
+            margin: -2.25rem auto 2.5rem auto;
+            position: relative;
+            z-index: 10;
+            background: var(--card-bg);
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border: 1px solid #edf2f2;
+            padding: 1rem;
+        }
+        .search-row { display: flex; align-items: center; gap: .75rem; }
+        .menu-toggle {
+            flex: 0 0 auto;
+            width: 42px; height: 42px;
+            border: none;
+            border-radius: 10px;
+            background: var(--viridis-teal);
+            color: white;
+            font-size: 1.15rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .search-box {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            border: 2px solid var(--viridis-teal);
+            border-radius: 30px;
+            padding: .6rem 1.1rem;
+        }
+        .search-box .search-icon { opacity: .65; }
+        #searchInput {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+        .filter-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .6rem;
+            margin-top: 1rem;
+        }
+        .filter-btn {
+            flex: 1 1 calc(50% - .6rem);
+            min-width: 130px;
+            display: flex; align-items: center; gap: .5rem;
+            padding: .6rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #e0e6e6;
+            background: #f4f8f8;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: .92rem;
+            cursor: pointer;
+            transition: background .2s ease, color .2s ease, border-color .2s ease;
+        }
+        .filter-btn:hover { border-color: var(--viridis-teal); }
+        .filter-btn.active { background: var(--sus-blue); border-color: var(--sus-blue); color: white; }
+        @media (min-width: 640px) {
+            .filter-tabs { flex-wrap: nowrap; }
+            .filter-btn { flex: 1 1 0; }
+        }
+        .filter-tabs.hidden { display: none; }
+
+        main { max-width: 900px; margin: 0 auto 4rem auto; }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px; height: 1px;
+            padding: 0; margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        .cards-grid .function-card { margin-bottom: 0; }
+
+        .section-heading { margin: 2.5rem 0 1.5rem 0; }
+        .section-heading-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: .35rem;
+            gap: .5rem;
+        }
+        .section-eyebrow {
+            display: inline-flex; align-items: center; gap: .4rem;
+            font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+            color: var(--viridis-teal);
+        }
+        .section-count { font-size: .85rem; color: var(--text-muted); white-space: nowrap; }
+        .section-title {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--viridis-dark);
+            padding-bottom: .6rem;
+            border-bottom: 3px solid var(--viridis-teal);
+            margin: 0;
+        }
+
+        /* Numeração automática dos verbetes dentro de cada aba */
+        .cards-grid { counter-reset: func-counter; }
+        .function-card { counter-increment: func-counter; }
+        .function-card h3::before {
+            content: counter(func-counter, decimal-leading-zero) ". ";
+            color: var(--viridis-teal);
+            font-weight: 800;
+        }
+
+        .function-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #edf2f2;
+            border-left: 6px solid var(--viridis-teal);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .function-card.sql { border-left-color: var(--sus-blue); }
+        .function-card.pandas { border-left-color: var(--viridis-green); }
+
+        .function-card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+
+        .function-card h3 {
+            color: var(--viridis-dark);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.6rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .description { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); }
+
+        .sus-context {
+            background-color: var(--sus-blue-light);
+            border-left: 4px solid var(--sus-blue);
+            padding: 1.2rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .sus-context strong {
+            color: var(--sus-blue);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 1.2rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            font-size: 0.95rem;
+            border-top: 3px solid var(--viridis-yellow);
+        }
+
+        .kw { color: var(--code-keyword); }
+        .st { color: var(--code-string); }
+        .cm { color: var(--code-comment); }
+        .fn { color: var(--code-function); }
+
+        .no-results { text-align: center; padding: 2rem; font-size: 1.2rem; color: var(--text-muted); display: none; }
+
+        footer {
+            max-width: 900px;
+            margin: 0 auto 3rem auto;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .hero-title { font-size: 1.7rem; }
+            .function-card { padding: 1.5rem; }
+            #searchInput { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <svg style="display:none" aria-hidden="true">
+        <symbol id="icon-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </symbol>
+        <symbol id="icon-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </symbol>
+        <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </symbol>
+        <symbol id="icon-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+        </symbol>
+        <symbol id="icon-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+        </symbol>
+        <symbol id="icon-bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+        </symbol>
+        <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+        </symbol>
+    </svg>
+
+    <header class="hero">
+        <div class="hero-topbar">
+            <span class="hero-icon-badge" aria-hidden="true"><svg class="icon"><use href="#icon-activity"></use></svg></span>
+            <span class="hero-org">3ª GRS Paraíba · UEPB</span>
+        </div>
+        <hr class="hero-divider">
+        <div class="hero-eyebrow"><svg class="icon" aria-hidden="true"><use href="#icon-book"></use></svg> Glossário Interativo</div>
+        <h1 class="hero-title">Fundamentos de SQL para Bancos de Dados em Saúde</h1>
+        <p class="hero-subtitle">Comandos essenciais de SQL, Pandas e Matplotlib aplicados a dados do SUS — da consulta ao banco até a visualização dos indicadores.</p>
+        <br>
+        <p class="hero-subtitle">Desenvolvido por: Arthur Barbosa, Andrey Ferreira e Vívian Araújo</p>
+    </header>
+
+    <div class="toolbar">
+        <div class="search-row">
+            <button type="button" class="menu-toggle" id="menuToggle" aria-expanded="true" aria-controls="filterTabs" aria-label="Mostrar/ocultar categorias"><svg class="icon" aria-hidden="true" style="width:20px;height:20px;vertical-align:middle;"><use href="#icon-menu"></use></svg></button>
+            <div class="search-box" role="search">
+                <span class="search-icon" aria-hidden="true"><svg class="icon"><use href="#icon-search"></use></svg></span>
+                <label for="searchInput" class="visually-hidden">Pesquisar função no glossário</label>
+                <input type="text" id="searchInput" aria-label="Pesquisar função" placeholder="Buscar função, comando ou contexto...">
+            </div>
+        </div>
+        <nav class="filter-tabs" id="filterTabs" aria-label="Categorias do glossário">
+            <button type="button" class="filter-btn active" data-target="todos"><svg class="icon" aria-hidden="true"><use href="#icon-book"></use></svg> Todos</button>
+            <button type="button" class="filter-btn" data-target="sec-sql"><svg class="icon" aria-hidden="true"><use href="#icon-database"></use></svg> SQL</button>
+            <button type="button" class="filter-btn" data-target="sec-pandas"><svg class="icon" aria-hidden="true"><use href="#icon-code"></use></svg> Pandas</button>
+            <button type="button" class="filter-btn" data-target="sec-plot"><svg class="icon" aria-hidden="true"><use href="#icon-bar-chart"></use></svg> Matplotlib</button>
+        </nav>
+    </div>
+
+
+    <main id="glossary-list">
+        <div class="no-results" id="noResultsMsg">Nenhuma função encontrada para a sua busca.</div>
+
+        <!-- ===================== PARTE 1 — SQL ===================== -->
+        <section class="glossary-section" aria-labelledby="sec-sql">
+            <div class="section-heading">
+                <div class="section-heading-top">
+                    <span class="section-eyebrow"><svg class="icon" aria-hidden="true"><use href="#icon-database"></use></svg> Parte 1</span>
+                    <span class="section-count">14 verbetes</span>
+                </div>
+                <h2 class="section-title" id="sec-sql">Fundamentos de SQL</h2>
+            </div>
+            <div class="cards-grid">
+
+            <article class="function-card sql">
+                <h3>!gdown / !pip install jupysql</h3>
+                <div class="description">Baixa um banco de dados pronto direto do Google Drive para o Colab e instala a biblioteca que traduz comandos SQL dentro do notebook.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Diferente de criar um banco do zero, aqui você trabalha com dados reais de notificações de sífilis na Paraíba, já organizados em tabelas relacionais.</div>
+                <pre><code><span class="cm"># Baixa o arquivo do Google Drive pelo ID e instala o suporte a SQL</span>
+!gdown --id 1pA0GyJ-CG_1_a1B61S-LlsvoESiVQiA1 -O sifilis_pb.db
+!pip install -q jupysql</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>%load_ext sql / %sql sqlite:///</h3>
+                <div class="description">Ativa o SQL dentro do notebook e conecta a sessão diretamente ao arquivo de banco de dados já baixado.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>A partir daqui, qualquer célula com <code>%%sql</code> roda comandos direto sobre o banco <code>sifilis_pb.db</code>, sem precisar de Python puro.</div>
+                <pre><code><span class="fn">%load_ext</span> sql
+%config SqlMagic.autopandas = <span class="kw">False</span>
+%config SqlMagic.feedback = <span class="kw">0</span>
+<span class="fn">%sql</span> sqlite:///sifilis_pb.db</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>data_table.enable_dataframe_formatter()</h3>
+                <div class="description">Recurso exclusivo do Colab (não é SQL) que transforma as tabelas de resultado em grades interativas, com rolagem, busca e ordenação por coluna.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Facilita a leitura de bases grandes, como o cadastro completo de municípios da Paraíba, sem rolar um texto fixo.</div>
+                <pre><code><span class="kw">from</span> google.colab <span class="kw">import</span> data_table
+data_table.<span class="fn">enable_dataframe_formatter</span>()</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>SELECT ... AS ... WHERE =</h3>
+                <div class="description">Renomeia colunas na saída da consulta e filtra por igualdade, trazendo apenas a linha correspondente a um valor exato.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Busca um município específico pelo código do IBGE — como Campina Grande (250407) — já com nomes de coluna mais legíveis.</div>
+                <pre><code><span class="cm">-- Apelidos (AS) e filtro de igualdade</span>
+<span class="kw">SELECT</span>
+    codigo_municipio <span class="kw">AS</span> codigo_ibge,
+    municipio <span class="kw">AS</span> nome_cidade
+<span class="kw">FROM</span> municipios
+<span class="kw">WHERE</span> codigo_municipio = <span class="kw">250407</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>Operadores de comparação (&lt;&gt;, &gt;, &lt;, AND)</h3>
+                <div class="description">Reúne os operadores relacionais — diferente, maior, menor, maior/menor ou igual — combinados pelo <code>AND</code>, que exige que todas as condições sejam verdadeiras ao mesmo tempo.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Isola um recorte específico: notificações fora de Campina Grande, entre 2020 e 2023, com totais entre 10 e 500 casos.</div>
+                <pre><code><span class="kw">SELECT</span> codigo_municipio, ano, total
+<span class="kw">FROM</span> sifilis_notificacoes2
+<span class="kw">WHERE</span> codigo_municipio &lt;&gt; <span class="kw">250400</span>
+  <span class="kw">AND</span> ano &gt;= <span class="kw">2020</span>
+  <span class="kw">AND</span> ano &lt;= <span class="kw">2023</span>
+  <span class="kw">AND</span> total &gt; <span class="kw">10</span>
+  <span class="kw">AND</span> total &lt; <span class="kw">500</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>INNER JOIN</h3>
+                <div class="description">Cruza duas tabelas usando uma coluna em comum, trazendo apenas os registros que têm correspondência garantida nas duas.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>As tabelas de notificação guardam só o código do município; o JOIN busca o nome legível na tabela <code>municipios</code>. O mesmo padrão se repete para as tabelas clínica e de faixa etária: <code>tabela_de_fato INNER JOIN municipios ON ...codigo_municipio = ...codigo_municipio</code>.</div>
+                <pre><code><span class="kw">SELECT</span>
+    m.codigo_municipio, m.municipio,
+    sn.ano, sn.total
+<span class="kw">FROM</span> sifilis_notificacoes2 sn
+<span class="kw">INNER JOIN</span> municipios m
+    <span class="kw">ON</span> sn.codigo_municipio = m.codigo_municipio;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>Colunas entre aspas ("10-14")</h3>
+                <div class="description">Nomes de coluna que começam com número ou têm caracteres especiais precisam ficar entre aspas duplas, para o SQL não confundir com uma operação de subtração.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Necessário ao consultar a tabela <code>sifilis_idade</code>, cujas colunas de faixa etária são nomeadas assim (10-14, 15-19, 20-39, 40-59).</div>
+                <pre><code><span class="kw">SELECT</span> m.municipio, si.ano,
+       si.<span class="st">"10-14"</span>, si.<span class="st">"20-39"</span>
+<span class="kw">FROM</span> sifilis_idade si
+<span class="kw">INNER JOIN</span> municipios m
+    <span class="kw">ON</span> si.codigo_municipio = m.codigo_municipio;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>WHERE + AND + OR + BETWEEN</h3>
+                <div class="description">Combina múltiplas condições: parênteses resolvem o "ou" primeiro, <code>AND</code> exige que as demais sejam verdadeiras, e <code>BETWEEN</code> é um atalho para um intervalo fechado (inclui os dois limites).</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Isola dois municípios escolhidos (Campina Grande ou João Pessoa), dentro de um intervalo de anos, com um mínimo de casos.</div>
+                <pre><code><span class="kw">SELECT</span> codigo_municipio, ano, total
+<span class="kw">FROM</span> sifilis_notificacoes2
+<span class="kw">WHERE</span> (codigo_municipio = <span class="kw">250407</span> <span class="kw">OR</span> codigo_municipio = <span class="kw">250810</span>)
+  <span class="kw">AND</span> ano <span class="kw">BETWEEN</span> <span class="kw">2021</span> <span class="kw">AND</span> <span class="kw">2023</span>
+  <span class="kw">AND</span> total &gt; <span class="kw">50</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>IN e LIKE</h3>
+                <div class="description"><code>IN</code> substitui várias condições de igualdade por uma lista; <code>LIKE</code> busca um padrão de texto usando o curinga <code>%</code>, útil quando não se sabe o nome exato.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Filtra municípios pertencentes a uma lista exata de códigos IBGE, ou cujo nome comece pela letra "M".</div>
+                <pre><code><span class="kw">SELECT</span> codigo_municipio, municipio
+<span class="kw">FROM</span> municipios
+<span class="kw">WHERE</span> codigo_municipio <span class="kw">IN</span> (<span class="kw">250407</span>, <span class="kw">250810</span>, <span class="kw">250100</span>)
+   <span class="kw">OR</span> municipio <span class="kw">LIKE</span> <span class="st">'M%'</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>IS NULL / IS NOT NULL</h3>
+                <div class="description">Campos vazios em bancos relacionais não podem ser comparados com <code>=</code> — existe uma sintaxe própria para isso.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Filtra fichas do SINAN que tenham (ou não) algum valor preenchido em um campo, evitando a armadilha de comparar com NULL usando igualdade.</div>
+                <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> sifilis_notificacoes2
+<span class="kw">WHERE</span> total <span class="kw">IS NOT NULL</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>IS NOT NULL na prática (fichas incompletas)</h3>
+                <div class="description">Aplica <code>IS NOT NULL</code> junto com um filtro numérico e ordenação para localizar os municípios com mais fichas incompletas.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Nas bases do SINAN, campos não preenchidos pelas equipes de saúde ficam registrados na coluna <code>ign_branco</code> — este relatório prioriza a correção de dados.</div>
+                <pre><code><span class="kw">SELECT</span> codigo_municipio, ano,
+       ign_branco <span class="kw">AS</span> fichas_incompletas, total
+<span class="kw">FROM</span> sifilis_clinica2
+<span class="kw">WHERE</span> ano = <span class="kw">2023</span>
+  <span class="kw">AND</span> ign_branco <span class="kw">IS NOT NULL</span>
+  <span class="kw">AND</span> ign_branco &gt; <span class="kw">0</span>
+<span class="kw">ORDER BY</span> ign_branco <span class="kw">DESC</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>COUNT, SUM, AVG, MIN, MAX, ROUND, CAST</h3>
+                <div class="description">Conjunto de funções de agregação que sintetizam indicadores por grupo: contagem de linhas, soma, média, valores mínimo/máximo, arredondamento e conversão de tipo.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Calcula por município quantos anos têm registro, o total acumulado de casos, a média (bruta e arredondada) e os limites de notificação. <code>CAST</code> evita arredondamentos incorretos na divisão. Toda agregação aqui depende do <code>GROUP BY</code> final.</div>
+                <pre><code><span class="kw">SELECT</span>
+    codigo_municipio,
+    <span class="fn">COUNT</span>(ano) <span class="kw">AS</span> total_anos_registrados,
+    <span class="fn">SUM</span>(total) <span class="kw">AS</span> total_acumulado_casos,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(total), <span class="kw">2</span>) <span class="kw">AS</span> media_arredondada,
+    <span class="fn">MIN</span>(total) <span class="kw">AS</span> menor_notificacao_anual,
+    <span class="fn">MAX</span>(total) <span class="kw">AS</span> maior_notificacao_anual,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(<span class="fn">CAST</span>(total <span class="kw">AS</span> FLOAT)), <span class="kw">2</span>) <span class="kw">AS</span> media_float
+<span class="kw">FROM</span> sifilis_notificacoes2
+<span class="kw">GROUP BY</span> codigo_municipio
+<span class="kw">LIMIT</span> <span class="kw">5</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>GROUP BY + ORDER BY + LIMIT</h3>
+                <div class="description">Combina agrupamento, ordenação decrescente e limite de linhas para responder perguntas como "quais os 5 registros com mais casos em determinada faixa etária?".</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Ordena os municípios pela faixa de 20 a 39 anos em 2023, mostrando apenas os 5 primeiros.</div>
+                <pre><code><span class="kw">SELECT</span> codigo_municipio, ano,
+       si.<span class="st">"20-39"</span> <span class="kw">AS</span> faixa_20_39
+<span class="kw">FROM</span> sifilis_idade
+<span class="kw">WHERE</span> ano = <span class="kw">2023</span>
+<span class="kw">ORDER BY</span> <span class="st">"20-39"</span> <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="kw">5</span>;</code></pre>
+            </article>
+
+            <article class="function-card sql">
+                <h3>Relatório final (JOIN + WHERE + ORDER BY + LIMIT)</h3>
+                <div class="description">Junta tudo o que foi praticado — JOIN para trazer o nome da cidade, WHERE para filtrar ano e um critério clínico, ORDER BY e LIMIT para destacar os municípios mais críticos.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Gera um relatório curto, pronto para apresentação, com os municípios com mais casos primários de sífilis em 2023. <code>JOIN</code> sem a palavra <code>INNER</code> funciona igual — INNER é o padrão.</div>
+                <pre><code><span class="kw">SELECT</span>
+    m.municipio <span class="kw">AS</span> cidade,
+    c.ano, c.primaria, c.secundaria,
+    c.terciaria, c.latente, c.ign_branco
+<span class="kw">FROM</span> sifilis_clinica2 c
+<span class="kw">INNER JOIN</span> municipios m
+    <span class="kw">ON</span> c.codigo_municipio = m.codigo_municipio
+<span class="kw">WHERE</span> c.ano = <span class="kw">2023</span> <span class="kw">AND</span> c.primaria &gt; <span class="kw">0</span>
+<span class="kw">ORDER BY</span> c.primaria <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="kw">5</span>;</code></pre>
+            </article>
+            </div>
+        </section>
+
+        <!-- ===================== PARTE 2 — PANDAS ===================== -->
+        <section class="glossary-section" aria-labelledby="sec-pandas">
+            <div class="section-heading">
+                <div class="section-heading-top">
+                    <span class="section-eyebrow"><svg class="icon" aria-hidden="true"><use href="#icon-code"></use></svg> Parte 2</span>
+                    <span class="section-count">14 verbetes</span>
+                </div>
+                <h2 class="section-title" id="sec-pandas">Pandas &amp; Manipulação de Dados</h2>
+            </div>
+            <div class="cards-grid">
+
+            <article class="function-card pandas">
+                <h3>sqlite3.connect()</h3>
+                <div class="description">É a "chave" que destranca a porta do banco de dados local, permitindo a leitura sem alterar os dados originais.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Acesso seguro ao arquivo do SINAN antes de qualquer extração de dados.</div>
+                <pre><code><span class="kw">import</span> sqlite3
+conexao = sqlite3.<span class="fn">connect</span>(caminho_banco)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>pd.read_sql_query()</h3>
+                <div class="description">Executa a extração: pega uma instrução SQL e devolve uma planilha digital (DataFrame) pronta para ser manipulada no Python.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Equivale à importação de um boletim para uma planilha de trabalho.</div>
+                <pre><code><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.<span class="fn">read_sql_query</span>(query_sql, conexao)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>df.isnull()</h3>
+                <div class="description">Faz uma varredura na tabela e responde Verdadeiro/Falso para cada célula, indicando se aquele campo foi deixado em branco.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Marcador de campos em branco no prontuário digital.</div>
+                <pre><code>campos_vazios = df.<span class="fn">isnull</span>()</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>.sum()</h3>
+                <div class="description">Pega tudo o que foi identificado (como as falhas mapeadas por <code>isnull</code>) e faz a soma matemática para entregar o número exato.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Contagem total de casos ou erros em uma coluna.</div>
+                <pre><code>total_falhas = campos_vazios.<span class="fn">sum</span>()</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>pd.merge()</h3>
+                <div class="description">Junta duas planilhas usando uma coluna em comum (um "elo"), como um dicionário de códigos, substituindo valores técnicos por nomes legíveis.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Troca códigos de 6 dígitos pelo nome real da cidade, usando a tabela auxiliar de municípios.</div>
+                <pre><code>df_final = pd.<span class="fn">merge</span>(df_notificacoes, df_municipios,
+                     on=<span class="st">'codigo'</span>, how=<span class="st">'left'</span>)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>Fatiamento condicional (filtro)</h3>
+                <div class="description">Extrai uma fatia menor de uma tabela gigante, isolando apenas as linhas que atendem a uma condição.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Recorte epidemiológico específico — por exemplo, apenas os dados de uma cidade.</div>
+                <pre><code>df_campina = df_final[df_final[<span class="st">'municipio'</span>] == <span class="st">'CAMPINA GRANDE'</span>]</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>.groupby()</h3>
+                <div class="description">Separa a tabela em "pilhas", reunindo todas as linhas que compartilham o mesmo valor em uma coluna, preparando-as para serem somadas.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Agrupa notificações pelo nome da cidade, como fichas separadas por pilhas.</div>
+                <pre><code>pilhas_por_cidade = df_final.<span class="fn">groupby</span>(<span class="st">'municipio'</span>)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>.reset_index()</h3>
+                <div class="description">Depois de agrupar e somar, a tabela perde seu formato tradicional; esta função "arruma a casa", realinhando linhas e colunas.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Formatação final do relatório antes de gerar o gráfico.</div>
+                <pre><code>tabela_limpa = df_agrupado.<span class="fn">reset_index</span>()</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>.sort_values()</h3>
+                <div class="description">Organiza os valores de uma coluna, colocando a tabela em ordem crescente ou decrescente.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Classificação de áreas de risco — do maior para o menor número de casos.</div>
+                <pre><code>df_ranking = tabela_limpa.<span class="fn">sort_values</span>(by=<span class="st">'total'</span>, ascending=<span class="kw">False</span>)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>os.path.abspath()</h3>
+                <div class="description">Revela o endereço de disco exato onde o script Python está sendo executado.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Evita o erro de "arquivo não encontrado" quando o terminal abre em uma pasta genérica.</div>
+                <pre><code>caminho_absoluto = os.path.<span class="fn">abspath</span>(__file__)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>os.path.dirname()</h3>
+                <div class="description">Pega o endereço completo do arquivo e corta o nome do script, guardando apenas o nome da pasta principal do projeto.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Identifica a pasta onde o banco .db está guardado, para localizar o SINAN.</div>
+                <pre><code>pasta_atual = os.path.<span class="fn">dirname</span>(caminho_absoluto)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>os.path.join()</h3>
+                <div class="description">Cola o nome da pasta com o nome do arquivo, colocando as barras de separação corretas automaticamente (\ no Windows, / no Mac/Linux).</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Garante que o código funcione em qualquer computador da Secretaria de Saúde, sem quebrar por causa das barras.</div>
+                <pre><code>caminho_banco = os.path.<span class="fn">join</span>(pasta_atual, <span class="st">'sifilis_gestantesFINALL.db'</span>)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>os.path.exists()</h3>
+                <div class="description">Vasculha o disco e responde Verdadeiro/Falso: este arquivo realmente existe neste local?</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Impede que o script trave a máquina tentando ler um banco inexistente.</div>
+                <pre><code>arquivo_existe = os.path.<span class="fn">exists</span>(caminho_banco)</code></pre>
+            </article>
+
+            <article class="function-card pandas">
+                <h3>os.path.getsize()</h3>
+                <div class="description">Mede o peso físico do arquivo em bytes no disco.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Principal proteção contra "arquivos fantasmas": se o SQLite não encontra um banco, ele cria um novo arquivo vazio; <code>getsize &gt; 0</code> prova que há dados reais dentro.</div>
+                <pre><code>tamanho_bytes = os.path.<span class="fn">getsize</span>(caminho_banco)</code></pre>
+            </article>
+            </div>
+        </section>
+
+        <!-- ===================== PARTE 3 — MATPLOTLIB ===================== -->
+        <section class="glossary-section" aria-labelledby="sec-plot">
+            <div class="section-heading">
+                <div class="section-heading-top">
+                    <span class="section-eyebrow"><svg class="icon" aria-hidden="true"><use href="#icon-bar-chart"></use></svg> Parte 3</span>
+                    <span class="section-count">21 verbetes</span>
+                </div>
+                <h2 class="section-title" id="sec-plot">Matplotlib &amp; Visualização</h2>
+            </div>
+            <div class="cards-grid">
+
+            <article class="function-card">
+                <h3>plt.subplots()</h3>
+                <div class="description">Prepara a "tela em branco". Este comando cria a figura inteira (a moldura, <code>fig</code>) e os eixos (a área interna exata onde o desenho será feito, <code>ax</code>).</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>É o primeiro passo de qualquer relatório. Ele define o tamanho da imagem (ex: <code>figsize=(10, 6)</code>) para garantir que o gráfico caiba perfeitamente no Boletim Epidemiológico sem ficar esticado.</div>
+                <pre><code><span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+fig, ax = plt.<span class="fn">subplots</span>(figsize=(<span class="kw">10</span>, <span class="kw">6</span>))</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.bar()</h3>
+                <div class="description">Cria um gráfico de barras verticais, desenhando colunas em pé a partir do eixo X, ideal para comparar dados categóricos.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Ideal para comparar o ranking de notificações entre diferentes cidades da Paraíba (ex: Casos Confirmados de Sífilis em João Pessoa vs. Campina Grande vs. Santa Rita).</div>
+                <pre><code>municipios = [<span class="st">'João Pessoa'</span>, <span class="st">'Campina Grande'</span>]
+casos = [<span class="kw">148</span>, <span class="kw">27</span>]
+plt.<span class="fn">bar</span>(municipios, casos)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.barh()</h3>
+                <div class="description">Cria um gráfico de barras horizontais (deitadas), partindo do eixo Y. A lógica é invertida em relação ao <code>plt.bar()</code>.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Perfeito para textos longos que não caberiam embaixo do gráfico vertical, como a listagem extensa de "Esquemas Terapêuticos" (Penicilina G Benzatina 7.2M UI, Eritromicina, Não Realizado).</div>
+                <pre><code>tratamentos = [<span class="st">'Penicilina G'</span>, <span class="st">'Não Realizado'</span>]
+casos = [<span class="kw">132</span>, <span class="kw">113</span>]
+plt.<span class="fn">barh</span>(tratamentos, casos)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.plot()</h3>
+                <div class="description">Cria gráficos de linhas contínuas, conectando pontos ao longo de um eixo sequencial (geralmente tempo).</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>A ferramenta número um para Séries Temporais. Ele desenha a curva endêmica mostrando se um agravo (como Sífilis Congênita) está em tendência de alta (surto) ou queda ao longo dos meses.</div>
+                <pre><code>anos = [<span class="kw">2020</span>, <span class="kw">2021</span>, <span class="kw">2022</span>, <span class="kw">2023</span>]
+casos = [<span class="kw">208</span>, <span class="kw">209</span>, <span class="kw">257</span>, <span class="kw">284</span>]
+plt.<span class="fn">plot</span>(anos, casos, marker=<span class="st">'o'</span>, linewidth=<span class="kw">2</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.pie()</h3>
+                <div class="description">Gera um gráfico de pizza, dividindo um círculo em fatias proporcionais a 100%. O parâmetro <code>autopct</code> calcula as porcentagens.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Usado para mostrar a proporção total de um cenário. Por exemplo: "Qual a fatia percentual de gestantes com Sífilis que foram tratadas adequadamente vs. tratadas de forma inadequada?".</div>
+                <pre><code>fatias = [<span class="kw">132</span>, <span class="kw">113</span>]
+plt.<span class="fn">pie</span>(fatias, labels=[<span class="st">'Adequado'</span>, <span class="st">'Inadequado'</span>], autopct=<span class="st">'%1.1f%%'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.title()</h3>
+                <div class="description">Adiciona o título principal na parte superior da figura, com opções de formatação como peso da fonte e tamanho.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Regra de Ouro: Um gráfico de saúde pública nunca vai para a mesa do gestor sem título. Ele deve conter a Variável, o Local e o Período (ex: "Evolução de Casos de Sífilis - Campina Grande, 2024").</div>
+                <pre><code>plt.<span class="fn">title</span>(<span class="st">'Casos de Sífilis em Gestantes (2024)'</span>, fontweight=<span class="st">'bold'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.xlabel() e plt.ylabel()</h3>
+                <div class="description">Funções para nomear os eixos horizontal (X) e vertical (Y), dando contexto aos números plotados.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Evita que a apresentação no CIR (Colegiado Intergestores Regional) fique ambígua. Garante que todos entendam que a base inferior são os "Anos de Notificação" e a lateral é o "Número de Fichas do SINAN".</div>
+                <pre><code>plt.<span class="fn">xlabel</span>(<span class="st">'Ano de Notificação'</span>)
+plt.<span class="fn">ylabel</span>(<span class="st">'Total de Fichas Registradas'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.xticks() e plt.yticks()</h3>
+                <div class="description">Controla a exibição, o espaçamento e, principalmente, a rotação dos rótulos dos eixos.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Se você listar 15 municípios, os nomes vão se sobrepor virando uma mancha ilegível. Usar a rotação de 45 graus (<code>rotation=45</code>) inclina os nomes das cidades e despolui a visualização.</div>
+                <pre><code>plt.<span class="fn">xticks</span>(rotation=<span class="kw">45</span>, ha=<span class="st">'right'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.ylim() e plt.xlim()</h3>
+                <div class="description">Define forçadamente os limites mínimo e máximo numéricos de um eixo.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Vital para evitar distorções cognitivas. Se você vai apresentar o surto de uma cidade pequena ao lado de João Pessoa, fixar o <code>ylim</code> em 300 para ambos os gráficos ajuda os gestores a compararem a escala real da epidemia sem serem enganados pelo zoom do gráfico.</div>
+                <pre><code><span class="cm"># Força o eixo vertical a ir de 0 a 300 casos</span>
+plt.<span class="fn">ylim</span>(<span class="kw">0</span>, <span class="kw">300</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.grid() / ax.grid()</h3>
+                <div class="description">Desenha uma grade de linhas auxiliares de fundo (como um papel milimetrado ou quadriculado).</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Em gráficos de barras muito distantes do eixo Y, ligar a grade horizontal (<code>axis='y'</code>) ajuda enfermeiros e técnicos a medirem o volume visualmente sem precisarem encostar uma régua ou o dedo na tela.</div>
+                <pre><code>ax.<span class="fn">grid</span>(axis=<span class="st">'y'</span>, linestyle=<span class="st">'--'</span>, alpha=<span class="kw">0.6</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>cmap='viridis' (Colormaps)</h3>
+                <div class="description">Aplica um mapa de cores (escala cromática) cientificamente desenhado aos elementos do gráfico.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>É uma diretriz do governo (e-MAG / WCAG). A paleta Viridis foi criada para ser 100% legível por pessoas daltônicas. Além disso, se a UBS imprimir o boletim numa impressora preto e branco (escala de cinza), o contraste perfeito se manterá.</div>
+                <pre><code><span class="kw">from</span> matplotlib <span class="kw">import</span> colormaps
+cores = colormaps[<span class="st">'viridis'</span>]([<span class="kw">0.2</span>, <span class="kw">0.5</span>, <span class="kw">0.8</span>])
+plt.<span class="fn">bar</span>(cidades, casos, color=cores)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.legend()</h3>
+                <div class="description">Cria uma caixa explicativa que correlaciona as cores/formatos das linhas ou barras aos seus respectivos significados.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Indispensável em gráficos complexos (ex: Linha Azul = Casos Notificados; Linha Vermelha = Óbitos Fetais). Sem a legenda, o visualizador não saberá o que cada cor representa no cenário epidemiológico.</div>
+                <pre><code>plt.<span class="fn">plot</span>(anos, notificados, label=<span class="st">'Notificados'</span>)
+plt.<span class="fn">plot</span>(anos, obitos, label=<span class="st">'Óbitos'</span>)
+plt.<span class="fn">legend</span>(title=<span class="st">'Status'</span>, loc=<span class="st">'upper left'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.text()</h3>
+                <div class="description">Insere um texto livre em uma coordenada X e Y definida manualmente dentro do espaço do gráfico.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Substitui eixos confusos. Permite "carimbar" o número exato de gestantes diagnosticadas logo acima do ponto daquele ano na linha do tempo, eliminando a margem de dúvida na leitura.</div>
+                <pre><code><span class="cm"># Escreve o texto '257 Casos' na coord. X=2022, Y=257</span>
+plt.<span class="fn">text</span>(<span class="kw">2022</span>, <span class="kw">257</span>, <span class="st">'257 Casos'</span>, fontweight=<span class="st">'bold'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>ax.bar_label()</h3>
+                <div class="description">Automatiza a inserção dos valores numéricos exatos em cima (ou ao lado) dos containers (barras) criados.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Atalho de produtividade massiva para triagens rápidas no posto de saúde. O script lê a barra, descobre o valor e posiciona o rótulo sozinho. Menos tempo formatando, mais tempo agindo na saúde.</div>
+                <pre><code>grafico_barras = ax.<span class="fn">bar</span>(municipios, casos)
+ax.<span class="fn">bar_label</span>(grafico_barras, padding=<span class="kw">3</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.axhline() e plt.axvline()</h3>
+                <div class="description">Desenha uma linha reta infinita que atravessa todo o gráfico na horizontal (hline) ou vertical (vline).</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Perfeito para traçar o "Limiar Epidêmico". Você adiciona uma linha vermelha tracejada no valor de 100 casos. Se as barras azuis do mês ultrapassarem essa linha vermelha, a equipe técnica sabe que a Regional de Saúde entrou em situação de alerta.</div>
+                <pre><code><span class="cm"># Desenha uma linha de meta/alerta</span>
+plt.<span class="fn">axhline</span>(y=<span class="kw">100</span>, color=<span class="st">'red'</span>, linestyle=<span class="st">'--'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.annotate()</h3>
+                <div class="description">Insere anotações ricas, permitindo combinar um texto explicativo e uma seta apontando para uma coordenada específica.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Excelente para justificar anomalias no sistema SINAN. O técnico pode desenhar uma seta apontando para uma queda repentina nos dados de maio e escrever: "Oscilação do servidor DATASUS neste mês".</div>
+                <pre><code>plt.<span class="fn">annotate</span>(<span class="st">'Queda por Falha no SINAN'</span>, xy=(<span class="kw">2021</span>, <span class="kw">150</span>),
+             xytext=(<span class="kw">2020</span>, <span class="kw">200</span>), arrowprops=dict(facecolor=<span class="st">'black'</span>))</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.fill_between()</h3>
+                <div class="description">Preenche com cor a área existente abaixo de uma linha ou o espaço sombreado entre duas linhas diferentes.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Usado pesadamente na geração de "Diagramas de Controle" (Canal Endêmico). Permite pintar de verde e amarelo a faixa de segurança histórica. Se a linha do ano atual sair dessa zona sombreada, detecta-se o surto.</div>
+                <pre><code>plt.<span class="fn">fill_between</span>(meses, limite_min, limite_max, color=<span class="st">'gray'</span>, alpha=<span class="kw">0.3</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.scatter()</h3>
+                <div class="description">Gera um gráfico de dispersão (nuvem de pontos), onde cada par de dados X e Y é representado por uma bolinha livre no espaço.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Usado para descobrir correlações clínicas que não são óbvias. Ex: Colocar a 'Idade da Mãe' no eixo X e 'Semanas de Gestação no Diagnóstico' no eixo Y, ajudando a revelar se mães mais jovens estão descobrindo a Sífilis mais tarde.</div>
+                <pre><code>plt.<span class="fn">scatter</span>(idades_maes, semanas_gestacao, alpha=<span class="kw">0.5</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>ax.axis('equal')</h3>
+                <div class="description">Trava a tela, forçando que ambos os eixos (X e Y) obedeçam à mesma proporção espacial geométrica (escala 1:1).</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Comando obrigatório logo após criar gráficos de pizza (ex: porcentagem de tratamentos). Sem ele, se a janela do computador da UBS for retangular, o círculo da pizza ficará esticado parecendo um ovo.</div>
+                <pre><code>ax.<span class="fn">pie</span>(fatias, labels=nomes)
+ax.<span class="fn">axis</span>(<span class="st">'equal'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.savefig()</h3>
+                <div class="description">Exporta o ambiente plotado, salvando-o fisicamente como um arquivo de imagem no disco do computador.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Garante que os gráficos gerados não fiquem restritos ao terminal de código. O parâmetro <code>dpi=300</code> salva um PNG em altíssima resolução que pode ser colado em ofícios, relatórios do Word e PDF sem "pixelar" ou embaçar.</div>
+                <pre><code>plt.<span class="fn">savefig</span>(<span class="st">'boletim_sifilis.png'</span>, dpi=<span class="kw">300</span>, bbox_inches=<span class="st">'tight'</span>)</code></pre>
+            </article>
+
+            <article class="function-card">
+                <h3>plt.close()</h3>
+                <div class="description">Encerra a figura atual (janela gráfica) e libera a memória processual atrelada a ela.</div>
+                <div class="sus-context"><strong>No contexto do SUS</strong>Higiene de código. Como os computadores das Unidades Básicas de Saúde (UBS) costumam ser antigos, rodar vários gráficos sem fechar a tela anterior pode travar a máquina (estourar a memória RAM).</div>
+                <pre><code>plt.<span class="fn">close</span>() <span class="cm"># Desocupa a memória imediatamente após salvar</span></code></pre>
+            </article>
+            </div>
+        </section>
+    </main>
+
+    <footer>Fundamentos de SQL para Bancos de Dados em Saúde — material de apoio do minicurso (3ª GRS Paraíba / UEPB).</footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('searchInput');
+            const sections = document.querySelectorAll('.glossary-section');
+            const noResultsMsg = document.getElementById('noResultsMsg');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const menuToggle = document.getElementById('menuToggle');
+            const filterTabs = document.getElementById('filterTabs');
+
+            // Busca por texto (mantém o comportamento já existente)
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                let totalVisible = 0;
+
+                sections.forEach(section => {
+                    const cards = section.querySelectorAll('.function-card');
+                    let visibleInSection = 0;
+                    cards.forEach(card => {
+                        const match = card.innerText.toLowerCase().includes(term);
+                        card.style.display = match ? 'block' : 'none';
+                        if (match) visibleInSection++;
+                    });
+                    section.style.display = visibleInSection > 0 ? 'block' : 'none';
+                    totalVisible += visibleInSection;
+                });
+
+                noResultsMsg.style.display = totalVisible === 0 ? 'block' : 'none';
+            });
+
+            // Menu (hamburger) mostra/esconde os filtros em QUALQUER tamanho de tela
+            menuToggle.addEventListener('click', () => {
+                const isVisible = filterTabs.classList.toggle('hidden') === false;
+                menuToggle.setAttribute('aria-expanded', String(isVisible));
+            });
+
+            // Botões de filtro: navegam até a seção clicada (Todos volta ao topo da lista)
+            const setActive = (btn) => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.removeAttribute('aria-current');
+                });
+                btn.classList.add('active');
+                btn.setAttribute('aria-current', 'true');
+            };
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetId = btn.dataset.target;
+                    setActive(btn);
+                    if (targetId === 'todos') {
+                        document.getElementById('glossary-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        const target = document.getElementById(targetId);
+                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+
+            // Scroll-spy: destaca o filtro correspondente enquanto o usuário rola a página
+            const sectionTargets = { 'sec-sql': null, 'sec-pandas': null, 'sec-plot': null };
+            Object.keys(sectionTargets).forEach(id => {
+                const heading = document.getElementById(id);
+                if (heading) sectionTargets[id] = heading.closest('.glossary-section');
+            });
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    const headingEl = entry.target.querySelector('.section-title');
+                    if (!headingEl) return;
+                    const btn = document.querySelector(`.filter-btn[data-target="${headingEl.id}"]`);
+                    if (btn) setActive(btn);
+                });
+            }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+
+            sections.forEach(section => observer.observe(section));
+        });
+    </script>
+</body>
+</html>
