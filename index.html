@@ -34,6 +34,7 @@
 
         html { scroll-behavior: smooth; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { overflow-x: hidden; }
 
         body {
             font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -41,7 +42,15 @@
             color: var(--text-main);
             background-color: var(--bg-color);
             padding: 0 15px;
+            overflow-x: hidden; 
+            width: 100%; 
         }
+
+        .description, .sus-context, .function-card h3 {
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        code { overflow-wrap: anywhere; }
 
         .icon {
             width: 16px; height: 16px;
@@ -105,7 +114,7 @@
             border: 1px solid #edf2f2;
             padding: 1rem;
         }
-        .search-row { display: flex; align-items: center; gap: .75rem; }
+        .search-row { display: flex; align-items: center; gap: .75rem; min-width: 0; }
         .menu-toggle {
             flex: 0 0 auto;
             width: 42px; height: 42px;
@@ -119,6 +128,7 @@
         }
         .search-box {
             flex: 1 1 auto;
+            min-width: 0;
             display: flex;
             align-items: center;
             gap: .5rem;
@@ -134,6 +144,8 @@
             background: transparent;
             font-size: 1rem;
             color: var(--text-main);
+            min-width: 0;
+            text-overflow: ellipsis;
         }
         .filter-tabs {
             display: flex;
@@ -177,8 +189,9 @@
 
         .cards-grid {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
             gap: 1.5rem;
+            min-width: 0;
         }
         .cards-grid .function-card { margin-bottom: 0; }
 
@@ -224,6 +237,8 @@
             border: 1px solid #edf2f2;
             border-left: 6px solid var(--viridis-teal);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            min-width: 0;
+            max-width: 100%;
         }
         .function-card.sql { border-left-color: var(--sus-blue); }
         .function-card.pandas { border-left-color: var(--viridis-green); }
@@ -262,10 +277,14 @@
             color: var(--code-text);
             padding: 1.2rem;
             border-radius: 8px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
             overflow-x: auto;
             font-family: 'Fira Code', 'Courier New', Courier, monospace;
             font-size: 0.95rem;
             border-top: 3px solid var(--viridis-yellow);
+            max-width: 100%; 
         }
 
         .kw { color: var(--code-keyword); }
@@ -285,8 +304,18 @@
 
         @media (max-width: 600px) {
             .hero-title { font-size: 1.7rem; }
-            .function-card { padding: 1.5rem; }
-            #searchInput { font-size: 1rem; }
+            .function-card { padding: 1.25rem; }
+            .function-card h3 { font-size: 1.25rem; }
+            #searchInput { font-size: .95rem; }
+            pre {
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+                overflow-x: visible;
+                font-size: .8rem;
+            }
+            .toolbar { padding: .75rem; margin-left: 1rem; margin-right: 1rem; }
+            .filter-btn { font-size: .85rem; padding: .55rem .75rem; }
         }
     </style>
 </head>
@@ -834,6 +863,9 @@ ax.<span class="fn">axis</span>(<span class="st">'equal'</span>)</code></pre>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('searchInput');
+            if (window.matchMedia('(max-width: 420px)').matches) {
+                searchInput.setAttribute('placeholder', 'Buscar função ou comando...');
+            }
             const sections = document.querySelectorAll('.glossary-section');
             const noResultsMsg = document.getElementById('noResultsMsg');
             const filterBtns = document.querySelectorAll('.filter-btn');
